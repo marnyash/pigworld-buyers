@@ -2,6 +2,29 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pigworld_buyer/main.dart';
 
 void main() {
+  final listings = [
+    PigListing.fromJson({
+      'id': '1',
+      'title': 'Weaner A',
+      'breed': 'Large White',
+      'quantity': 2,
+      'price_per_pig': 24000,
+      'weight_kg': 30,
+      'farm_name': 'North Farm',
+      'created_at': '2026-10-07T12:00:00Z',
+    }),
+    PigListing.fromJson({
+      'id': '2',
+      'title': 'Gilt B',
+      'breed': 'Landrace',
+      'quantity': 1,
+      'price_per_pig': 18000,
+      'weight_kg': 70,
+      'farm_name': 'South Farm',
+      'created_at': '2026-10-08T12:00:00Z',
+    }),
+  ];
+
   test('parses a marketplace listing for buyer display', () {
     final listing = PigListing.fromJson({
       'id': 7,
@@ -15,6 +38,7 @@ void main() {
       'age_weeks': 10,
       'weight_kg': '18.50',
       'image_url': 'https://api.example.test/storage/animal-images/pig.jpg',
+      'created_at': '2026-10-07T12:00:00Z',
     });
 
     expect(listing.id, '7');
@@ -27,6 +51,7 @@ void main() {
       listing.imageUrl,
       'https://api.example.test/storage/animal-images/pig.jpg',
     );
+    expect(listing.createdAt, DateTime.utc(2026, 10, 7, 12));
     expect(listing.searchableText, contains('green acres'));
   });
 
@@ -46,6 +71,9 @@ void main() {
         'farm_location': 'Nakuru',
         'price_per_pig': '18000.00',
         'currency': 'KES',
+        'weight_kg': '18.50',
+        'age_weeks': 10,
+        'image_url': 'https://api.example.test/storage/pig.jpg',
       },
     });
 
@@ -54,5 +82,40 @@ void main() {
     expect(delivery.farmName, 'Green Acres');
     expect(delivery.quantity, 2);
     expect(delivery.pricePerPig, 18000);
+    expect(delivery.weightKg, 18.5);
+    expect(delivery.ageWeeks, 10);
+    expect(delivery.imageUrl, 'https://api.example.test/storage/pig.jpg');
+  });
+
+  test('filters listings by search and breed and sorts by price', () {
+    final results = filterAndSortListings(
+      listings,
+      search: 'farm',
+      breed: 'Large White',
+      sortOrder: 'price_low',
+    );
+
+    expect(results.map((listing) => listing.id), ['1']);
+  });
+
+  test('sorts listings by newest, price and weight', () {
+    expect(filterAndSortListings(listings).map((listing) => listing.id), [
+      '2',
+      '1',
+    ]);
+    expect(
+      filterAndSortListings(
+        listings,
+        sortOrder: 'price_low',
+      ).map((listing) => listing.id),
+      ['2', '1'],
+    );
+    expect(
+      filterAndSortListings(
+        listings,
+        sortOrder: 'weight_high',
+      ).map((listing) => listing.id),
+      ['2', '1'],
+    );
   });
 }

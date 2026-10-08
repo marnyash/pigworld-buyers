@@ -247,6 +247,8 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
   late Future<List<PigListing>> _listingsFuture;
   late Future<List<BuyerDelivery>> _deliveriesFuture;
   String _search = '';
+  String? _selectedBreed;
+  String _sortOrder = 'newest';
   int _page = 0;
 
   @override
@@ -280,7 +282,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
         actions: [
           IconButton(
             tooltip: _copy(widget.language, 'signOut'),
-            icon: const Icon(Icons.logout),
+            icon: const _BrandIcon(size: 24),
             onPressed: widget.onLogout,
           ),
         ],
@@ -295,15 +297,15 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
         onDestinationSelected: (value) => setState(() => _page = value),
         destinations: [
           NavigationDestination(
-            icon: Icon(Icons.search),
+            icon: const _BrandIcon(size: 24),
             label: _copy(widget.language, 'findPigs'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.local_shipping_outlined),
+            icon: const _BrandIcon(size: 24),
             label: _copy(widget.language, 'delivery'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.info_outline),
+            icon: const _BrandIcon(size: 24),
             label: _copy(widget.language, 'howItWorks'),
           ),
         ],
@@ -317,12 +319,85 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: TextField(
           decoration: InputDecoration(
-            prefixIcon: Icon(Icons.search),
+            prefixIcon: const Padding(
+              padding: EdgeInsets.all(12),
+              child: _BrandIcon(size: 20),
+            ),
             labelText: _copy(widget.language, 'searchListings'),
           ),
           onChanged: (value) =>
               setState(() => _search = value.trim().toLowerCase()),
         ),
+      ),
+      FutureBuilder<List<PigListing>>(
+        future: _listingsFuture,
+        builder: (context, snapshot) {
+          final listings = snapshot.data ?? const <PigListing>[];
+          final breeds =
+              listings.map((listing) => listing.breed).toSet().toList()..sort();
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String?>(
+                    key: ValueKey(_selectedBreed),
+                    initialValue: _selectedBreed,
+                    decoration: InputDecoration(
+                      labelText: _copy(widget.language, 'filterBreed'),
+                      isDense: true,
+                    ),
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(_copy(widget.language, 'allBreeds')),
+                      ),
+                      for (final breed in breeds)
+                        DropdownMenuItem<String?>(
+                          value: breed,
+                          child: Text(breed, overflow: TextOverflow.ellipsis),
+                        ),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _selectedBreed = value),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    key: ValueKey(_sortOrder),
+                    initialValue: _sortOrder,
+                    decoration: InputDecoration(
+                      labelText: _copy(widget.language, 'sortBy'),
+                      isDense: true,
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: 'newest',
+                        child: Text(_copy(widget.language, 'sortNewest')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'price_low',
+                        child: Text(_copy(widget.language, 'sortPriceLow')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'price_high',
+                        child: Text(_copy(widget.language, 'sortPriceHigh')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'weight_high',
+                        child: Text(_copy(widget.language, 'sortWeight')),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) setState(() => _sortOrder = value);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
       Expanded(
         child: FutureBuilder<List<PigListing>>(
@@ -340,9 +415,12 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
                 ),
               );
             }
-            final listings = (snapshot.data ?? const <PigListing>[])
-                .where((listing) => listing.searchableText.contains(_search))
-                .toList();
+            final listings = filterAndSortListings(
+              snapshot.data ?? const <PigListing>[],
+              search: _search,
+              breed: _selectedBreed,
+              sortOrder: _sortOrder,
+            );
             if (listings.isEmpty) {
               return RefreshIndicator(
                 onRefresh: _refresh,
@@ -350,11 +428,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
                     const SizedBox(height: 120),
-                    Icon(
-                      Icons.pets_outlined,
-                      size: 48,
-                      color: Colors.grey[600],
-                    ),
+                    const _BrandIcon(size: 56),
                     const SizedBox(height: 12),
                     Center(
                       child: Text(
@@ -376,6 +450,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
                 itemBuilder: (context, index) => _BuyerListingCard(
                   listing: listings[index],
                   language: widget.language,
+                  onDetails: () => _showListingDetails(listings[index]),
                   onRequest: () => _showRequestDialog(listings[index]),
                 ),
               ),
@@ -385,6 +460,103 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
       ),
     ],
   );
+
+  Future<void> _showListingDetails(PigListing listing) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 220,
+                  child: listing.imageUrl == null || listing.imageUrl!.isEmpty
+                      ? const ColoredBox(
+                          color: Color(0xFFE9F2EC),
+                          child: Center(child: _BrandIcon(size: 80)),
+                        )
+                      : Image.network(
+                          listing.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const ColoredBox(
+                                color: Color(0xFFE9F2EC),
+                                child: Center(child: _BrandIcon(size: 80)),
+                              ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                listing.title,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              Text(
+                '${listing.farmName} · ${listing.location ?? _copy(widget.language, 'locationUnknown')}',
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${listing.currency} ${listing.pricePerPig.toStringAsFixed(0)} ${_copy(widget.language, 'each')}',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: _green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _DetailLine(
+                label: _copy(widget.language, 'breed'),
+                value: listing.breed,
+              ),
+              _DetailLine(
+                label: _copy(widget.language, 'weight'),
+                value: listing.weightKg == null
+                    ? _copy(widget.language, 'notProvided')
+                    : '${listing.weightKg} kg',
+              ),
+              if (listing.ageWeeks != null)
+                _DetailLine(
+                  label: _copy(widget.language, 'age'),
+                  value:
+                      '${listing.ageWeeks} ${_copy(widget.language, 'weeks')}',
+                ),
+              _DetailLine(
+                label: _copy(widget.language, 'available'),
+                value: '${listing.quantity}',
+              ),
+              if (listing.description?.isNotEmpty == true) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _copy(widget.language, 'farmDescription'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(listing.description!),
+              ],
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    _showRequestDialog(listing);
+                  },
+                  child: Text(_copy(widget.language, 'contactFarm')),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _showRequestDialog(PigListing listing) async {
     final formKey = GlobalKey<FormState>();
@@ -594,7 +766,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
             padding: const EdgeInsets.all(24),
             children: [
               const SizedBox(height: 100),
-              const Icon(Icons.local_shipping_outlined, size: 54),
+              const _BrandIcon(size: 64),
               const SizedBox(height: 16),
               Center(
                 child: Text(
@@ -916,6 +1088,9 @@ class BuyerDelivery {
     this.breed,
     this.currency,
     this.pricePerPig,
+    this.weightKg,
+    this.imageUrl,
+    this.ageWeeks,
     this.location,
     this.message,
   });
@@ -931,6 +1106,9 @@ class BuyerDelivery {
   final String? breed;
   final String? currency;
   final double? pricePerPig;
+  final double? weightKg;
+  final String? imageUrl;
+  final int? ageWeeks;
   final String? location;
   final String? message;
 
@@ -948,6 +1126,9 @@ class BuyerDelivery {
       breed: listing['breed'] as String?,
       currency: listing['currency'] as String?,
       pricePerPig: double.tryParse('${listing['price_per_pig'] ?? ''}'),
+      weightKg: double.tryParse('${listing['weight_kg'] ?? ''}'),
+      imageUrl: listing['image_url'] as String?,
+      ageWeeks: (listing['age_weeks'] as num?)?.toInt(),
       location:
           listing['location'] as String? ?? listing['farm_location'] as String?,
       message: json['message'] as String?,
@@ -964,6 +1145,7 @@ class PigListing {
     required this.pricePerPig,
     required this.currency,
     required this.farmName,
+    this.createdAt,
     this.imageUrl,
     this.ageWeeks,
     this.weightKg,
@@ -978,6 +1160,7 @@ class PigListing {
   final double pricePerPig;
   final String currency;
   final String farmName;
+  final DateTime? createdAt;
   final String? imageUrl;
   final int? ageWeeks;
   final double? weightKg;
@@ -995,6 +1178,7 @@ class PigListing {
     pricePerPig: double.tryParse('${json['price_per_pig'] ?? 0}') ?? 0,
     currency: '${json['currency'] ?? 'KES'}',
     farmName: '${json['farm_name'] ?? 'Farm'}',
+    createdAt: DateTime.tryParse('${json['created_at'] ?? ''}'),
     imageUrl: json['image_url'] as String?,
     ageWeeks: (json['age_weeks'] as num?)?.toInt(),
     weightKg: json['weight_kg'] == null
@@ -1005,127 +1189,196 @@ class PigListing {
   );
 }
 
+List<PigListing> filterAndSortListings(
+  Iterable<PigListing> source, {
+  String search = '',
+  String? breed,
+  String sortOrder = 'newest',
+}) {
+  final listings = source
+      .where(
+        (listing) =>
+            listing.searchableText.contains(search.trim().toLowerCase()) &&
+            (breed == null || listing.breed == breed),
+      )
+      .toList();
+  listings.sort((a, b) {
+    switch (sortOrder) {
+      case 'price_low':
+        return a.pricePerPig.compareTo(b.pricePerPig);
+      case 'price_high':
+        return b.pricePerPig.compareTo(a.pricePerPig);
+      case 'weight_high':
+        return (b.weightKg ?? 0).compareTo(a.weightKg ?? 0);
+      default:
+        return (b.createdAt ?? DateTime(0)).compareTo(
+          a.createdAt ?? DateTime(0),
+        );
+    }
+  });
+  return listings;
+}
+
 class _BuyerListingCard extends StatelessWidget {
   const _BuyerListingCard({
     required this.listing,
     required this.language,
+    required this.onDetails,
     required this.onRequest,
   });
 
   final PigListing listing;
   final String language;
+  final VoidCallback onDetails;
   final VoidCallback onRequest;
 
   @override
   Widget build(BuildContext context) => Card(
     clipBehavior: Clip.antiAlias,
     margin: const EdgeInsets.only(bottom: 14),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: SizedBox(
-                  width: 76,
-                  height: 76,
-                  child: listing.imageUrl == null || listing.imageUrl!.isEmpty
-                      ? const ColoredBox(
-                          color: Color(0xFFE9F2EC),
-                          child: Icon(Icons.pets_outlined, color: _green),
-                        )
-                      : Image.network(
-                          listing.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const ColoredBox(
-                                color: Color(0xFFE9F2EC),
-                                child: Icon(Icons.pets_outlined, color: _green),
-                              ),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      listing.title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text(
-                      '${listing.farmName} · ${listing.location ?? _copy(language, 'locationUnknown')}',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _Tag(label: listing.breed, icon: Icons.pets_outlined),
-              if (listing.ageWeeks != null)
-                _Tag(
-                  label: '${listing.ageWeeks} ${_copy(language, 'weeks')}',
-                  icon: Icons.calendar_today_outlined,
-                ),
-              if (listing.weightKg != null)
-                _Tag(
-                  label: '${listing.weightKg} kg',
-                  icon: Icons.monitor_weight_outlined,
-                ),
-              _Tag(
-                label: '${listing.quantity} ${_copy(language, 'available')}',
-                icon: Icons.inventory_2_outlined,
-              ),
-            ],
-          ),
-          if (listing.description?.isNotEmpty == true) ...[
-            const SizedBox(height: 12),
-            Text(listing.description!),
-          ],
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${listing.currency} ${listing.pricePerPig.toStringAsFixed(0)} ${_copy(language, 'each')}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: _green,
-                    fontWeight: FontWeight.bold,
+    child: InkWell(
+      onTap: onDetails,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 76,
+                    height: 76,
+                    child: listing.imageUrl == null || listing.imageUrl!.isEmpty
+                        ? const ColoredBox(
+                            color: Color(0xFFE9F2EC),
+                            child: _BrandIcon(size: 38),
+                          )
+                        : Image.network(
+                            listing.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const ColoredBox(
+                                  color: Color(0xFFE9F2EC),
+                                  child: _BrandIcon(size: 38),
+                                ),
+                          ),
                   ),
                 ),
-              ),
-              FilledButton(
-                onPressed: onRequest,
-                child: Text(_copy(language, 'contactFarm')),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        listing.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        '${listing.farmName} · ${listing.location ?? _copy(language, 'locationUnknown')}',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _Tag(label: listing.breed),
+                if (listing.ageWeeks != null)
+                  _Tag(
+                    label: '${listing.ageWeeks} ${_copy(language, 'weeks')}',
+                  ),
+                if (listing.weightKg != null)
+                  _Tag(label: '${listing.weightKg} kg'),
+                _Tag(
+                  label: '${listing.quantity} ${_copy(language, 'available')}',
+                ),
+              ],
+            ),
+            if (listing.description?.isNotEmpty == true) ...[
+              const SizedBox(height: 12),
+              Text(listing.description!),
             ],
-          ),
-        ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${listing.currency} ${listing.pricePerPig.toStringAsFixed(0)} ${_copy(language, 'each')}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: _green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                FilledButton(
+                  onPressed: onRequest,
+                  child: Text(_copy(language, 'contactFarm')),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     ),
   );
 }
 
+class _BrandIcon extends StatelessWidget {
+  const _BrandIcon({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+    'assets/images/pig-world-smart-logo.jpeg',
+    width: size,
+    height: size,
+    fit: BoxFit.contain,
+    semanticLabel: 'Pig World Smart',
+  );
+}
+
 class _Tag extends StatelessWidget {
-  const _Tag({required this.label, required this.icon});
+  const _Tag({required this.label});
   final String label;
-  final IconData icon;
 
   @override
   Widget build(BuildContext context) => Chip(
-    avatar: Icon(icon, size: 16),
+    avatar: const _BrandIcon(size: 18),
     label: Text(label),
     visualDensity: VisualDensity.compact,
+  );
+}
+
+class _DetailLine extends StatelessWidget {
+  const _DetailLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        Expanded(child: Text(value)),
+      ],
+    ),
   );
 }
 
@@ -1141,7 +1394,7 @@ class _LoadError extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.cloud_off_outlined, size: 42),
+          const _BrandIcon(size: 48),
           const SizedBox(height: 12),
           const Text('Could not load pigs from the marketplace.'),
           const SizedBox(height: 6),
@@ -1149,7 +1402,7 @@ class _LoadError extends StatelessWidget {
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
+            icon: const _BrandIcon(size: 20),
             label: const Text('Try again'),
           ),
         ],
@@ -1312,9 +1565,16 @@ class _LanguageChoice extends StatelessWidget {
   Widget build(BuildContext context) => Card(
     child: ListTile(
       onTap: onTap,
-      leading: Icon(
-        selected ? Icons.radio_button_checked : Icons.radio_button_off,
-        color: selected ? _green : null,
+      leading: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: selected ? _green : Colors.transparent,
+            width: 2,
+          ),
+          shape: BoxShape.circle,
+        ),
+        child: const _BrandIcon(size: 26),
       ),
       title: Text(label),
       subtitle: Text(detail),
@@ -1354,7 +1614,7 @@ class _AuthFrame extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: IconButton(
                       onPressed: back,
-                      icon: const Icon(Icons.arrow_back),
+                      icon: const _BrandIcon(size: 24),
                     ),
                   ),
                 Center(
@@ -1435,7 +1695,7 @@ class _BuyerSignInPageState extends State<_BuyerSignInPage> {
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: widget.onLanguage,
-              icon: const Icon(Icons.language),
+              icon: const _BrandIcon(size: 20),
               label: Text(widget.language == 'sw' ? 'Kiswahili' : 'English'),
             ),
           ),
@@ -1816,7 +2076,28 @@ class _DeliveryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.local_shipping_outlined, color: _green),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SizedBox(
+                    width: 40,
+                    height: 40,
+                    child:
+                        delivery.imageUrl == null || delivery.imageUrl!.isEmpty
+                        ? const ColoredBox(
+                            color: Color(0xFFE9F2EC),
+                            child: _BrandIcon(size: 24),
+                          )
+                        : Image.network(
+                            delivery.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const ColoredBox(
+                                  color: Color(0xFFE9F2EC),
+                                  child: _BrandIcon(size: 24),
+                                ),
+                          ),
+                  ),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -1830,6 +2111,12 @@ class _DeliveryCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text('${delivery.farmName} · ${delivery.quantity} pigs'),
             if (delivery.breed != null) Text(delivery.breed!),
+            if (delivery.ageWeeks != null)
+              Text(
+                '${_copy(language, 'age')}: ${delivery.ageWeeks} ${_copy(language, 'weeks')}',
+              ),
+            if (delivery.weightKg != null)
+              Text('${_copy(language, 'weight')}: ${delivery.weightKg} kg'),
             if (delivery.location?.isNotEmpty == true)
               Text('${_copy(language, 'location')}: ${delivery.location}'),
             if (delivery.pricePerPig != null)
@@ -1878,6 +2165,18 @@ const _translations = <String, Map<String, String>>{
     'marketplace': 'PigWorld Market',
     'findPigs': 'Find pigs',
     'searchListings': 'Search breed, farm or location',
+    'filterBreed': 'Breed',
+    'allBreeds': 'All breeds',
+    'sortBy': 'Sort',
+    'sortNewest': 'Newest',
+    'sortPriceLow': 'Lowest price',
+    'sortPriceHigh': 'Highest price',
+    'sortWeight': 'Heaviest',
+    'breed': 'Breed',
+    'weight': 'Weight',
+    'age': 'Age',
+    'notProvided': 'Not provided',
+    'farmDescription': 'Farm details',
     'noPigs': 'No pigs are available right now.',
     'noMatches': 'No pigs match your search.',
     'locationUnknown': 'Location not specified',
@@ -1953,6 +2252,18 @@ const _translations = <String, Map<String, String>>{
     'marketplace': 'Soko la PigWorld',
     'findPigs': 'Tafuta nguruwe',
     'searchListings': 'Tafuta aina, shamba au mahali',
+    'filterBreed': 'Aina',
+    'allBreeds': 'Aina zote',
+    'sortBy': 'Panga',
+    'sortNewest': 'Mpya zaidi',
+    'sortPriceLow': 'Bei ya chini',
+    'sortPriceHigh': 'Bei ya juu',
+    'sortWeight': 'Mzito zaidi',
+    'breed': 'Aina',
+    'weight': 'Uzito',
+    'age': 'Umri',
+    'notProvided': 'Haijatolewa',
+    'farmDescription': 'Maelezo ya shamba',
     'noPigs': 'Hakuna nguruwe wanaopatikana kwa sasa.',
     'noMatches': 'Hakuna nguruwe wanaolingana na utafutaji wako.',
     'locationUnknown': 'Mahali hakujatajwa',
