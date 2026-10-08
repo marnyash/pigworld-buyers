@@ -964,6 +964,7 @@ class PigListing {
     required this.pricePerPig,
     required this.currency,
     required this.farmName,
+    this.imageUrl,
     this.ageWeeks,
     this.weightKg,
     this.location,
@@ -977,6 +978,7 @@ class PigListing {
   final double pricePerPig;
   final String currency;
   final String farmName;
+  final String? imageUrl;
   final int? ageWeeks;
   final double? weightKg;
   final String? location;
@@ -993,6 +995,7 @@ class PigListing {
     pricePerPig: double.tryParse('${json['price_per_pig'] ?? 0}') ?? 0,
     currency: '${json['currency'] ?? 'KES'}',
     farmName: '${json['farm_name'] ?? 'Farm'}',
+    imageUrl: json['image_url'] as String?,
     ageWeeks: (json['age_weeks'] as num?)?.toInt(),
     weightKg: json['weight_kg'] == null
         ? null
@@ -1025,11 +1028,26 @@ class _BuyerListingCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 25,
-                backgroundColor: const Color(0xFFE9F2EC),
-                foregroundColor: _green,
-                child: const Icon(Icons.pets_outlined),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 76,
+                  height: 76,
+                  child: listing.imageUrl == null || listing.imageUrl!.isEmpty
+                      ? const ColoredBox(
+                          color: Color(0xFFE9F2EC),
+                          child: Icon(Icons.pets_outlined, color: _green),
+                        )
+                      : Image.network(
+                          listing.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const ColoredBox(
+                                color: Color(0xFFE9F2EC),
+                                child: Icon(Icons.pets_outlined, color: _green),
+                              ),
+                        ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(

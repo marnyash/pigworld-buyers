@@ -14,6 +14,7 @@ void main() {
       'farm_location': 'Nakuru',
       'age_weeks': 10,
       'weight_kg': '18.50',
+      'image_url': 'https://api.example.test/storage/animal-images/pig.jpg',
     });
 
     expect(listing.id, '7');
@@ -22,6 +23,10 @@ void main() {
     expect(listing.pricePerPig, 18000);
     expect(listing.location, 'Nakuru');
     expect(listing.weightKg, 18.5);
+    expect(
+      listing.imageUrl,
+      'https://api.example.test/storage/animal-images/pig.jpg',
+    );
     expect(listing.searchableText, contains('green acres'));
   });
 
