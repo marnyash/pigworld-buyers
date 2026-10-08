@@ -24,4 +24,30 @@ void main() {
     expect(listing.weightKg, 18.5);
     expect(listing.searchableText, contains('green acres'));
   });
+
+  test('parses delivery request status and farm information', () {
+    final delivery = BuyerDelivery.fromJson({
+      'id': '12',
+      'buyer_name': 'Amina',
+      'phone': '+254700000005',
+      'quantity': 2,
+      'status': 'accepted',
+      'message': 'Arrange delivery',
+      'created_at': '2026-10-08T08:00:00+00:00',
+      'listing': {
+        'title': 'Healthy weaners',
+        'breed': 'Large White',
+        'farm_name': 'Green Acres',
+        'farm_location': 'Nakuru',
+        'price_per_pig': '18000.00',
+        'currency': 'KES',
+      },
+    });
+
+    expect(delivery.status, 'accepted');
+    expect(delivery.listingTitle, 'Healthy weaners');
+    expect(delivery.farmName, 'Green Acres');
+    expect(delivery.quantity, 2);
+    expect(delivery.pricePerPig, 18000);
+  });
 }

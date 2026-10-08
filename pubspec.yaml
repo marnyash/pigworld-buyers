@@ -10,6 +10,7 @@ dependencies:
   dio: ^5.7.0
   flutter:
     sdk: flutter
+  flutter_secure_storage: ^9.2.4
 
 dev_dependencies:
   flutter_lints: ^5.0.0
@@ -18,3 +19,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/pig-world-smart-logo.jpeg
