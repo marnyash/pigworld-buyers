@@ -249,6 +249,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
   String _search = '';
   String? _selectedBreed;
   String _sortOrder = 'newest';
+  MarketplaceFilters _filters = const MarketplaceFilters();
   int _page = 0;
 
   @override
@@ -399,6 +400,21 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
           );
         },
       ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: () => _showFilterSheet(),
+            icon: const Icon(Icons.tune),
+            label: Text(
+              _filters.activeCount == 0
+                  ? _copy(widget.language, 'moreFilters')
+                  : '${_copy(widget.language, 'moreFilters')} (${_filters.activeCount})',
+            ),
+          ),
+        ),
+      ),
       Expanded(
         child: FutureBuilder<List<PigListing>>(
           future: _listingsFuture,
@@ -420,6 +436,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
               search: _search,
               breed: _selectedBreed,
               sortOrder: _sortOrder,
+              filters: _filters,
             );
             if (listings.isEmpty) {
               return RefreshIndicator(
@@ -432,7 +449,9 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
                     const SizedBox(height: 12),
                     Center(
                       child: Text(
-                        _search.isEmpty
+                        _search.isEmpty &&
+                                _selectedBreed == null &&
+                                _filters.activeCount == 0
                             ? _copy(widget.language, 'noPigs')
                             : _copy(widget.language, 'noMatches'),
                       ),
@@ -460,6 +479,289 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
       ),
     ],
   );
+
+  Future<void> _showFilterSheet() async {
+    final location = TextEditingController(text: _filters.location);
+    final minPrice = TextEditingController(
+      text: _filters.minPrice?.toString() ?? '',
+    );
+    final maxPrice = TextEditingController(
+      text: _filters.maxPrice?.toString() ?? '',
+    );
+    final minAge = TextEditingController(
+      text: _filters.minAgeWeeks?.toString() ?? '',
+    );
+    final maxAge = TextEditingController(
+      text: _filters.maxAgeWeeks?.toString() ?? '',
+    );
+    final minWeight = TextEditingController(
+      text: _filters.minWeightKg?.toString() ?? '',
+    );
+    final maxWeight = TextEditingController(
+      text: _filters.maxWeightKg?.toString() ?? '',
+    );
+    var currency = _filters.currency;
+
+    final result = await showModalBottomSheet<MarketplaceFilters>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              8,
+              20,
+              MediaQuery.of(context).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _copy(widget.language, 'filterListings'),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: location,
+                    decoration: InputDecoration(
+                      labelText: _copy(widget.language, 'filterLocation'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String?>(
+                    initialValue: currency,
+                    decoration: InputDecoration(
+                      labelText: _copy(widget.language, 'currency'),
+                    ),
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(_copy(widget.language, 'anyCurrency')),
+                      ),
+                      for (final code in const ['KES', 'UGX', 'TZS', 'USD'])
+                        DropdownMenuItem<String?>(
+                          value: code,
+                          child: Text(code),
+                        ),
+                    ],
+                    onChanged: (value) => setSheetState(() => currency = value),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: minPrice,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: _copy(widget.language, 'minPrice'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: maxPrice,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: _copy(widget.language, 'maxPrice'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: minAge,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: _copy(widget.language, 'minAgeWeeks'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: maxAge,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: _copy(widget.language, 'maxAgeWeeks'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: minWeight,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: _copy(widget.language, 'minWeightKg'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: maxWeight,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: _copy(widget.language, 'maxWeightKg'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          setSheetState(() {
+                            location.clear();
+                            minPrice.clear();
+                            maxPrice.clear();
+                            minAge.clear();
+                            maxAge.clear();
+                            minWeight.clear();
+                            maxWeight.clear();
+                            currency = null;
+                          });
+                        },
+                        child: Text(_copy(widget.language, 'clearFilters')),
+                      ),
+                      const Spacer(),
+                      FilledButton(
+                        onPressed: () {
+                          final parsedMinPrice = double.tryParse(
+                            minPrice.text.trim(),
+                          );
+                          final parsedMaxPrice = double.tryParse(
+                            maxPrice.text.trim(),
+                          );
+                          final parsedMinAge = int.tryParse(minAge.text.trim());
+                          final parsedMaxAge = int.tryParse(maxAge.text.trim());
+                          final parsedMinWeight = double.tryParse(
+                            minWeight.text.trim(),
+                          );
+                          final parsedMaxWeight = double.tryParse(
+                            maxWeight.text.trim(),
+                          );
+                          if (currency == null &&
+                              (minPrice.text.trim().isNotEmpty ||
+                                  maxPrice.text.trim().isNotEmpty)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  _copy(
+                                    widget.language,
+                                    'chooseCurrencyForPrice',
+                                  ),
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          final invalid =
+                              _hasInvalidRange(
+                                minPrice.text,
+                                parsedMinPrice,
+                                maxPrice.text,
+                                parsedMaxPrice,
+                              ) ||
+                              _hasInvalidRange(
+                                minAge.text,
+                                parsedMinAge,
+                                maxAge.text,
+                                parsedMaxAge,
+                              ) ||
+                              _hasInvalidRange(
+                                minWeight.text,
+                                parsedMinWeight,
+                                maxWeight.text,
+                                parsedMaxWeight,
+                              );
+                          if (invalid) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  _copy(widget.language, 'invalidFilterRange'),
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          Navigator.pop(
+                            sheetContext,
+                            MarketplaceFilters(
+                              location: location.text.trim(),
+                              currency: currency,
+                              minPrice: parsedMinPrice,
+                              maxPrice: parsedMaxPrice,
+                              minAgeWeeks: parsedMinAge,
+                              maxAgeWeeks: parsedMaxAge,
+                              minWeightKg: parsedMinWeight,
+                              maxWeightKg: parsedMaxWeight,
+                            ),
+                          );
+                        },
+                        child: Text(_copy(widget.language, 'applyFilters')),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    location.dispose();
+    minPrice.dispose();
+    maxPrice.dispose();
+    minAge.dispose();
+    maxAge.dispose();
+    minWeight.dispose();
+    maxWeight.dispose();
+    if (result != null && mounted) setState(() => _filters = result);
+  }
+
+  bool _hasInvalidRange<T extends num>(
+    String minText,
+    T? minValue,
+    String maxText,
+    T? maxValue,
+  ) {
+    if ((minText.trim().isNotEmpty && minValue == null) ||
+        (maxText.trim().isNotEmpty && maxValue == null)) {
+      return true;
+    }
+    if ((minValue != null && minValue < 0) ||
+        (maxValue != null && maxValue < 0) ||
+        (minValue != null && !minValue.isFinite) ||
+        (maxValue != null && !maxValue.isFinite)) {
+      return true;
+    }
+    return minValue != null && maxValue != null && minValue > maxValue;
+  }
 
   Future<void> _showListingDetails(PigListing listing) async {
     await showModalBottomSheet<void>(
@@ -1189,17 +1491,70 @@ class PigListing {
   );
 }
 
+class MarketplaceFilters {
+  const MarketplaceFilters({
+    this.location = '',
+    this.currency,
+    this.minPrice,
+    this.maxPrice,
+    this.minAgeWeeks,
+    this.maxAgeWeeks,
+    this.minWeightKg,
+    this.maxWeightKg,
+  });
+
+  final String location;
+  final String? currency;
+  final double? minPrice;
+  final double? maxPrice;
+  final int? minAgeWeeks;
+  final int? maxAgeWeeks;
+  final double? minWeightKg;
+  final double? maxWeightKg;
+
+  int get activeCount => [
+    location.trim().isNotEmpty,
+    currency != null,
+    minPrice != null || maxPrice != null,
+    minAgeWeeks != null || maxAgeWeeks != null,
+    minWeightKg != null || maxWeightKg != null,
+  ].where((isActive) => isActive).length;
+}
+
 List<PigListing> filterAndSortListings(
   Iterable<PigListing> source, {
   String search = '',
   String? breed,
   String sortOrder = 'newest',
+  MarketplaceFilters filters = const MarketplaceFilters(),
 }) {
   final listings = source
       .where(
         (listing) =>
             listing.searchableText.contains(search.trim().toLowerCase()) &&
-            (breed == null || listing.breed == breed),
+            (breed == null || listing.breed == breed) &&
+            (filters.location.trim().isEmpty ||
+                (listing.location ?? '').toLowerCase().contains(
+                  filters.location.trim().toLowerCase(),
+                )) &&
+            (filters.currency == null ||
+                listing.currency == filters.currency) &&
+            (filters.minPrice == null ||
+                listing.pricePerPig >= filters.minPrice!) &&
+            (filters.maxPrice == null ||
+                listing.pricePerPig <= filters.maxPrice!) &&
+            (filters.minAgeWeeks == null ||
+                (listing.ageWeeks != null &&
+                    listing.ageWeeks! >= filters.minAgeWeeks!)) &&
+            (filters.maxAgeWeeks == null ||
+                (listing.ageWeeks != null &&
+                    listing.ageWeeks! <= filters.maxAgeWeeks!)) &&
+            (filters.minWeightKg == null ||
+                (listing.weightKg != null &&
+                    listing.weightKg! >= filters.minWeightKg!)) &&
+            (filters.maxWeightKg == null ||
+                (listing.weightKg != null &&
+                    listing.weightKg! <= filters.maxWeightKg!)),
       )
       .toList();
   listings.sort((a, b) {
@@ -2167,6 +2522,22 @@ const _translations = <String, Map<String, String>>{
     'searchListings': 'Search breed, farm or location',
     'filterBreed': 'Breed',
     'allBreeds': 'All breeds',
+    'moreFilters': 'More filters',
+    'filterListings': 'Filter listings',
+    'filterLocation': 'Location',
+    'currency': 'Currency',
+    'anyCurrency': 'Any currency',
+    'minPrice': 'Min price',
+    'maxPrice': 'Max price',
+    'minAgeWeeks': 'Min age (weeks)',
+    'maxAgeWeeks': 'Max age (weeks)',
+    'minWeightKg': 'Min weight (kg)',
+    'maxWeightKg': 'Max weight (kg)',
+    'clearFilters': 'Clear',
+    'applyFilters': 'Apply filters',
+    'invalidFilterRange':
+        'Check that filter values are valid and ranges are ordered.',
+    'chooseCurrencyForPrice': 'Choose a currency to filter by price.',
     'sortBy': 'Sort',
     'sortNewest': 'Newest',
     'sortPriceLow': 'Lowest price',
@@ -2254,6 +2625,21 @@ const _translations = <String, Map<String, String>>{
     'searchListings': 'Tafuta aina, shamba au mahali',
     'filterBreed': 'Aina',
     'allBreeds': 'Aina zote',
+    'moreFilters': 'Vichujio zaidi',
+    'filterListings': 'Chuja matangazo',
+    'filterLocation': 'Mahali',
+    'currency': 'Sarafu',
+    'anyCurrency': 'Sarafu yoyote',
+    'minPrice': 'Bei ya chini',
+    'maxPrice': 'Bei ya juu',
+    'minAgeWeeks': 'Umri wa chini (wiki)',
+    'maxAgeWeeks': 'Umri wa juu (wiki)',
+    'minWeightKg': 'Uzito wa chini (kg)',
+    'maxWeightKg': 'Uzito wa juu (kg)',
+    'clearFilters': 'Futa',
+    'applyFilters': 'Tumia vichujio',
+    'invalidFilterRange': 'Hakikisha thamani ni sahihi na mipaka imepangwa.',
+    'chooseCurrencyForPrice': 'Chagua sarafu ili kuchuja kwa bei.',
     'sortBy': 'Panga',
     'sortNewest': 'Mpya zaidi',
     'sortPriceLow': 'Bei ya chini',

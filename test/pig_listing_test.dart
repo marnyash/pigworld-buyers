@@ -98,6 +98,47 @@ void main() {
     expect(results.map((listing) => listing.id), ['1']);
   });
 
+  test('filters listings by location, currency, price, age and weight', () {
+    final results = filterAndSortListings(
+      [
+        PigListing.fromJson({
+          'id': '1',
+          'title': 'Healthy weaners',
+          'breed': 'Large White',
+          'quantity': 4,
+          'price_per_pig': 24000,
+          'currency': 'KES',
+          'farm_name': 'North Farm',
+          'farm_location': 'Nakuru',
+          'age_weeks': 10,
+          'weight_kg': 18,
+        }),
+        ...listings,
+      ],
+      filters: const MarketplaceFilters(
+        location: 'nakuru',
+        currency: 'KES',
+        minPrice: 20000,
+        maxPrice: 25000,
+        minAgeWeeks: 8,
+        maxAgeWeeks: 12,
+        minWeightKg: 15,
+        maxWeightKg: 20,
+      ),
+    );
+
+    expect(results.map((listing) => listing.id), ['1']);
+  });
+
+  test('requires known listing values to satisfy age and weight filters', () {
+    final results = filterAndSortListings(
+      listings,
+      filters: const MarketplaceFilters(minAgeWeeks: 1, minWeightKg: 1),
+    );
+
+    expect(results, isEmpty);
+  });
+
   test('sorts listings by newest, price and weight', () {
     expect(filterAndSortListings(listings).map((listing) => listing.id), [
       '2',
