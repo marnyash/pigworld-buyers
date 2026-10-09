@@ -17,7 +17,7 @@ class BuyerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'PigWorld Buyer',
+    title: 'Pig World Market',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       colorScheme: ColorScheme.fromSeed(seedColor: _green),
@@ -277,7 +277,19 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_copy(widget.language, 'marketplace')),
+        title: Row(
+          children: [
+            const _BrandIcon(size: 34),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                _copy(widget.language, 'marketplace'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
         backgroundColor: _green,
         foregroundColor: Colors.white,
         actions: [
@@ -404,10 +416,9 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: Align(
           alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            onPressed: () => _showFilterSheet(),
-            icon: const Icon(Icons.tune),
-            label: Text(
+          child: OutlinedButton(
+            onPressed: _showFilterSheet,
+            child: Text(
               _filters.activeCount == 0
                   ? _copy(widget.language, 'moreFilters')
                   : '${_copy(widget.language, 'moreFilters')} (${_filters.activeCount})',
@@ -462,16 +473,31 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
             }
             return RefreshIndicator(
               onRefresh: _refresh,
-              child: ListView.builder(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                itemCount: listings.length,
-                itemBuilder: (context, index) => _BuyerListingCard(
-                  listing: listings[index],
-                  language: widget.language,
-                  onDetails: () => _showListingDetails(listings[index]),
-                  onRequest: () => _showRequestDialog(listings[index]),
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth >= 1000
+                      ? 4
+                      : constraints.maxWidth >= 640
+                      ? 3
+                      : 2;
+                  return GridView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      mainAxisExtent: constraints.maxWidth < 640 ? 340 : 370,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: listings.length,
+                    itemBuilder: (context, index) => _BuyerListingCard(
+                      listing: listings[index],
+                      language: widget.language,
+                      onDetails: () => _showListingDetails(listings[index]),
+                      onRequest: () => _showRequestDialog(listings[index]),
+                    ),
+                  );
+                },
               ),
             );
           },
@@ -1590,96 +1616,86 @@ class _BuyerListingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     clipBehavior: Clip.antiAlias,
-    margin: const EdgeInsets.only(bottom: 14),
     child: InkWell(
       onTap: onDetails,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox(
-                    width: 76,
-                    height: 76,
-                    child: listing.imageUrl == null || listing.imageUrl!.isEmpty
-                        ? const ColoredBox(
-                            color: Color(0xFFE9F2EC),
-                            child: _BrandIcon(size: 38),
-                          )
-                        : Image.network(
-                            listing.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const ColoredBox(
-                                  color: Color(0xFFE9F2EC),
-                                  child: _BrandIcon(size: 38),
-                                ),
-                          ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 122,
+            child: listing.imageUrl == null || listing.imageUrl!.isEmpty
+                ? const ColoredBox(
+                    color: Color(0xFFE9F2EC),
+                    child: Center(child: _BrandIcon(size: 76)),
+                  )
+                : Image.network(
+                    listing.imageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const ColoredBox(
+                          color: Color(0xFFE9F2EC),
+                          child: Center(child: _BrandIcon(size: 76)),
+                        ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        listing.title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Text(
-                        '${listing.farmName} · ${listing.location ?? _copy(language, 'locationUnknown')}',
-                      ),
-                    ],
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    listing.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _Tag(label: listing.breed),
-                if (listing.ageWeeks != null)
-                  _Tag(
-                    label: '${listing.ageWeeks} ${_copy(language, 'weeks')}',
+                  const SizedBox(height: 3),
+                  Text(
+                    '${listing.farmName} · ${listing.location ?? _copy(language, 'locationUnknown')}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
-                if (listing.weightKg != null)
-                  _Tag(label: '${listing.weightKg} kg'),
-                _Tag(
-                  label: '${listing.quantity} ${_copy(language, 'available')}',
-                ),
-              ],
-            ),
-            if (listing.description?.isNotEmpty == true) ...[
-              const SizedBox(height: 12),
-              Text(listing.description!),
-            ],
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
+                  const SizedBox(height: 6),
+                  Text(
+                    '${listing.breed} · ${listing.quantity} ${_copy(language, 'available')}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _green,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
                     '${listing.currency} ${listing.pricePerPig.toStringAsFixed(0)} ${_copy(language, 'each')}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: _green,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-                FilledButton(
-                  onPressed: onRequest,
-                  child: Text(_copy(language, 'contactFarm')),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: onRequest,
+                      child: Text(
+                        _copy(language, 'requestToBuy'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     ),
   );
@@ -1692,11 +1708,11 @@ class _BrandIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Image.asset(
-    'assets/images/pig-world-smart-logo.jpeg',
+    'assets/images/pig-world-market-icon.png',
     width: size,
     height: size,
     fit: BoxFit.contain,
-    semanticLabel: 'Pig World Smart',
+    semanticLabel: 'Pig World Market',
   );
 }
 
@@ -1843,14 +1859,14 @@ class _SplashScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/pig-world-smart-logo.jpeg',
-              width: 240,
-              height: 240,
+              'assets/images/pig-world-market-icon.png',
+              width: 180,
+              height: 180,
               fit: BoxFit.contain,
             ),
             const SizedBox(height: 20),
             Text(
-              'Pig World Smart',
+              'Pig World Market',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: _green,
                 fontWeight: FontWeight.w800,
@@ -1974,9 +1990,9 @@ class _AuthFrame extends StatelessWidget {
                   ),
                 Center(
                   child: Image.asset(
-                    'assets/images/pig-world-smart-logo.jpeg',
-                    width: 128,
-                    height: 128,
+                    'assets/images/pig-world-market-icon.png',
+                    width: 112,
+                    height: 112,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2517,11 +2533,12 @@ String _copy(String language, String key) =>
 
 const _translations = <String, Map<String, String>>{
   'en': {
-    'marketplace': 'PigWorld Market',
+    'marketplace': 'Pig World Market',
     'findPigs': 'Find pigs',
     'searchListings': 'Search breed, farm or location',
     'filterBreed': 'Breed',
     'allBreeds': 'All breeds',
+    'requestToBuy': 'Request to buy',
     'moreFilters': 'More filters',
     'filterListings': 'Filter listings',
     'filterLocation': 'Location',
@@ -2620,11 +2637,12 @@ const _translations = <String, Map<String, String>>{
         'The farm will contact you to confirm availability, collection and payment.',
   },
   'sw': {
-    'marketplace': 'Soko la PigWorld',
+    'marketplace': 'Soko la Pig World',
     'findPigs': 'Tafuta nguruwe',
     'searchListings': 'Tafuta aina, shamba au mahali',
     'filterBreed': 'Aina',
     'allBreeds': 'Aina zote',
+    'requestToBuy': 'Omba kununua',
     'moreFilters': 'Vichujio zaidi',
     'filterListings': 'Chuja matangazo',
     'filterLocation': 'Mahali',

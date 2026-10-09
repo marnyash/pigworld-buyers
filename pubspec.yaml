@@ -1,5 +1,5 @@
 name: pigworld_buyer
-description: Buyer marketplace app for finding pigs from farms.
+description: Pig World Market buyer app for finding pigs from farms.
 publish_to: none
 version: 1.0.0+1
 
@@ -20,4 +20,4 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/pig-world-smart-logo.jpeg
+    - assets/images/pig-world-market-icon.png
