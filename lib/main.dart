@@ -250,6 +250,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
   String? _selectedBreed;
   String _sortOrder = 'newest';
   MarketplaceFilters _filters = const MarketplaceFilters();
+  final _searchFocusNode = FocusNode();
   int _page = 0;
 
   @override
@@ -257,6 +258,26 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
     super.initState();
     _listingsFuture = widget.api.fetchListings();
     _deliveriesFuture = widget.api.fetchBuyerDeliveries();
+  }
+
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _openSearch() {
+    setState(() => _page = 0);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocusNode.requestFocus();
+    });
+  }
+
+  void _openNotifications() {
+    setState(() {
+      _page = 1;
+      _deliveriesFuture = widget.api.fetchBuyerDeliveries();
+    });
   }
 
   Future<void> _refresh() async {
@@ -294,32 +315,40 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            tooltip: _copy(widget.language, 'signOut'),
-            icon: const _BrandIcon(size: 24),
-            onPressed: widget.onLogout,
+            tooltip: _copy(widget.language, 'searchListings'),
+            icon: const Icon(Icons.search),
+            onPressed: _openSearch,
+          ),
+          IconButton(
+            tooltip: _copy(widget.language, 'notifications'),
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: _openNotifications,
           ),
         ],
       ),
       body: switch (_page) {
         0 => _marketplace(),
         1 => _deliveries(),
-        _ => _HowItWorksPage(language: widget.language),
+        _ => _profile(),
       },
       bottomNavigationBar: NavigationBar(
         selectedIndex: _page,
         onDestinationSelected: (value) => setState(() => _page = value),
         destinations: [
           NavigationDestination(
-            icon: const _BrandIcon(size: 24),
-            label: _copy(widget.language, 'findPigs'),
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: _copy(widget.language, 'home'),
           ),
           NavigationDestination(
-            icon: const _BrandIcon(size: 24),
+            icon: const Icon(Icons.local_shipping_outlined),
+            selectedIcon: const Icon(Icons.local_shipping),
             label: _copy(widget.language, 'delivery'),
           ),
           NavigationDestination(
-            icon: const _BrandIcon(size: 24),
-            label: _copy(widget.language, 'howItWorks'),
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: _copy(widget.language, 'profile'),
           ),
         ],
       ),
@@ -331,11 +360,9 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: TextField(
+          focusNode: _searchFocusNode,
           decoration: InputDecoration(
-            prefixIcon: const Padding(
-              padding: EdgeInsets.all(12),
-              child: _BrandIcon(size: 20),
-            ),
+            prefixIcon: const Icon(Icons.search),
             labelText: _copy(widget.language, 'searchListings'),
           ),
           onChanged: (value) =>
@@ -1117,6 +1144,65 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
       },
     ),
   );
+
+  Widget _profile() => ListView(
+    padding: const EdgeInsets.all(20),
+    children: [
+      const SizedBox(height: 20),
+      CircleAvatar(
+        radius: 42,
+        backgroundColor: const Color(0xFFE9F2EC),
+        child: Icon(Icons.person, size: 48, color: _green),
+      ),
+      const SizedBox(height: 14),
+      Text(
+        widget.buyer.name,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          color: _green,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      const SizedBox(height: 20),
+      Card(
+        child: Column(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: Text(_copy(widget.language, 'fullName')),
+              subtitle: Text(widget.buyer.name),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.email_outlined),
+              title: Text(_copy(widget.language, 'email')),
+              subtitle: Text(
+                widget.buyer.email.isEmpty
+                    ? _copy(widget.language, 'notProvided')
+                    : widget.buyer.email,
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.phone_outlined),
+              title: Text(_copy(widget.language, 'phone')),
+              subtitle: Text(
+                widget.buyer.phone.isEmpty
+                    ? _copy(widget.language, 'notProvided')
+                    : widget.buyer.phone,
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      OutlinedButton.icon(
+        onPressed: widget.onLogout,
+        icon: const Icon(Icons.logout),
+        label: Text(_copy(widget.language, 'signOut')),
+      ),
+    ],
+  );
 }
 
 class BuyerMarketplaceApi {
@@ -1778,64 +1864,6 @@ class _LoadError extends StatelessWidget {
           ),
         ],
       ),
-    ),
-  );
-}
-
-class _HowItWorksPage extends StatelessWidget {
-  const _HowItWorksPage({required this.language});
-
-  final String language;
-
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      Text(
-        _copy(language, 'howHeadline'),
-        style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 14),
-      _StepTile(
-        number: '1',
-        title: _copy(language, 'findPigs'),
-        description: _copy(language, 'howBrowse'),
-      ),
-      _StepTile(
-        number: '2',
-        title: _copy(language, 'contactFarm'),
-        description: _copy(language, 'howContact'),
-      ),
-      _StepTile(
-        number: '3',
-        title: _copy(language, 'agreeDirectly'),
-        description: _copy(language, 'howAgree'),
-      ),
-    ],
-  );
-}
-
-class _StepTile extends StatelessWidget {
-  const _StepTile({
-    required this.number,
-    required this.title,
-    required this.description,
-  });
-  final String number;
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.only(top: 12),
-    child: ListTile(
-      leading: CircleAvatar(
-        backgroundColor: _green,
-        foregroundColor: Colors.white,
-        child: Text(number),
-      ),
-      title: Text(title),
-      subtitle: Text(description),
     ),
   );
 }
@@ -2534,7 +2562,9 @@ String _copy(String language, String key) =>
 const _translations = <String, Map<String, String>>{
   'en': {
     'marketplace': 'Pig World Market',
-    'findPigs': 'Find pigs',
+    'home': 'Home',
+    'profile': 'Profile',
+    'notifications': 'Notifications',
     'searchListings': 'Search breed, farm or location',
     'filterBreed': 'Breed',
     'allBreeds': 'All breeds',
@@ -2582,7 +2612,6 @@ const _translations = <String, Map<String, String>>{
     'requestFailed': 'Could not send your request',
     'couldNotRefresh': 'Could not refresh pigs',
     'delivery': 'Delivery',
-    'howItWorks': 'How it works',
     'signOut': 'Sign out',
     'chooseLanguage': 'Choose your language',
     'languageSubtitle': 'Select a language to get started.',
@@ -2627,18 +2656,13 @@ const _translations = <String, Map<String, String>>{
     'deliveryCompleteHelp': 'The farm marked this request as completed.',
     'contactFarmForHelp':
         'Please contact the farm directly about this request.',
-    'howHeadline': 'Buy directly from farms',
-    'howBrowse': 'Browse farm listings and compare breed, location and price.',
     'contactFarm': 'Contact the farm',
-    'howContact':
-        'Send your name, phone number and the number of pigs you need.',
-    'agreeDirectly': 'Agree directly',
-    'howAgree':
-        'The farm will contact you to confirm availability, collection and payment.',
   },
   'sw': {
     'marketplace': 'Soko la Pig World',
-    'findPigs': 'Tafuta nguruwe',
+    'home': 'Nyumbani',
+    'profile': 'Wasifu',
+    'notifications': 'Arifa',
     'searchListings': 'Tafuta aina, shamba au mahali',
     'filterBreed': 'Aina',
     'allBreeds': 'Aina zote',
@@ -2685,7 +2709,6 @@ const _translations = <String, Map<String, String>>{
     'requestFailed': 'Ombi halikuweza kutumwa',
     'couldNotRefresh': 'Nguruwe hawakuweza kupakiwa upya',
     'delivery': 'Uwasilishaji',
-    'howItWorks': 'Jinsi inavyofanya kazi',
     'signOut': 'Ondoka',
     'chooseLanguage': 'Chagua lugha yako',
     'languageSubtitle': 'Chagua lugha ili kuendelea.',
@@ -2731,13 +2754,6 @@ const _translations = <String, Map<String, String>>{
         'Shamba limekubali ombi lako. Wasiliana nao kupanga uwasilishaji.',
     'deliveryCompleteHelp': 'Shamba limeweka ombi hili kuwa limekamilika.',
     'contactFarmForHelp': 'Tafadhali wasiliana na shamba kuhusu ombi hili.',
-    'howHeadline': 'Nunua moja kwa moja kutoka mashambani',
-    'howBrowse':
-        'Vinjari matangazo ya mashamba na linganisha aina, mahali na bei.',
     'contactFarm': 'Wasiliana na shamba',
-    'howContact': 'Tuma jina, nambari ya simu na idadi ya nguruwe unaohitaji.',
-    'agreeDirectly': 'Kubalianeni moja kwa moja',
-    'howAgree':
-        'Shamba litawasiliana nawe kuthibitisha upatikanaji, uchukuaji na malipo.',
   },
 };
