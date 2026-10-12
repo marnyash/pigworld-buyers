@@ -8,3 +8,15 @@ use `flutter run --dart-define=API_BASE_URL=https://your-server/api/v1`.
 
 The app uses the public marketplace API. Farm-owner listing management and buyer
 request review are available in the sales section of the main PigWorld app.
+
+## Android release signing
+
+Google Play releases must be signed with the app's upload keystore, not the
+Android debug key. Copy `android/key.properties.example` to
+`android/key.properties`, set its values to your upload keystore credentials,
+and place the keystore at the configured `storeFile` path. Keep both files
+private. Build the Play upload bundle with:
+
+```sh
+flutter build appbundle --release
+```
