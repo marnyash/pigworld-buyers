@@ -1,11 +1,11 @@
 {
-    "name": "pigworld_buyer",
-    "short_name": "pigworld_buyer",
+    "name": "Pig World Market",
+    "short_name": "Pig World Market",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Browse pigs and request to buy directly from farms.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
