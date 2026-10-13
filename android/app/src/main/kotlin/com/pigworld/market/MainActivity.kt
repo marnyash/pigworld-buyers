@@ -1,4 +1,4 @@
-package com.example.pigworld_buyer
+package com.pigworld.market
 
 import io.flutter.embedding.android.FlutterActivity
 

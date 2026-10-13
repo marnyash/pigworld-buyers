@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "407416456735",
+    "project_id": "pig-world-market",
+    "storage_bucket": "pig-world-market.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:407416456735:android:ba9589fcbc0ec5c52d772a",
+        "android_client_info": {
+          "package_name": "com.pigworld.market"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVZXqVY-A7Aa_zswNFA5ZOzhuSwElNyRo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
