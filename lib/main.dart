@@ -23,8 +23,39 @@ class BuyerApp extends StatelessWidget {
       colorScheme: ColorScheme.fromSeed(seedColor: _green),
       scaffoldBackgroundColor: const Color(0xFFF5F7F4),
       useMaterial3: true,
+      appBarTheme: const AppBarTheme(
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: _green,
+        foregroundColor: Colors.white,
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 1,
+        shadowColor: const Color(0x1A183A2B),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: Color(0xFFE5EBE6)),
+        ),
+      ),
       inputDecorationTheme: const InputDecorationTheme(
         border: OutlineInputBorder(),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.white,
+        indicatorColor: const Color(0xFFDCEDE2),
+        elevation: 2,
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+          ),
+        ),
       ),
     ),
     home: const BuyerFlow(),
@@ -311,8 +342,6 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
             ),
           ],
         ),
-        backgroundColor: _green,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             tooltip: _copy(widget.language, 'searchListings'),
@@ -357,13 +386,79 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
 
   Widget _marketplace() => Column(
     children: [
+      Container(
+        margin: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF176B4D), Color(0xFF2F8A65)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x24176B4D),
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(17),
+              ),
+              child: const _BrandIcon(size: 38),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _copy(widget.language, 'marketIntro'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _copy(widget.language, 'marketSubtitle'),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.86),
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: TextField(
           focusNode: _searchFocusNode,
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.search),
             labelText: _copy(widget.language, 'searchListings'),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFE5EBE6)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFE5EBE6)),
+            ),
           ),
           onChanged: (value) =>
               setState(() => _search = value.trim().toLowerCase()),
@@ -2562,6 +2657,9 @@ String _copy(String language, String key) =>
 const _translations = <String, Map<String, String>>{
   'en': {
     'marketplace': 'Pig World Market',
+    'marketIntro': 'Find your next pigs',
+    'marketSubtitle':
+        'Browse trusted farm listings and contact sellers directly.',
     'home': 'Home',
     'profile': 'Profile',
     'notifications': 'Notifications',
@@ -2660,6 +2758,8 @@ const _translations = <String, Map<String, String>>{
   },
   'sw': {
     'marketplace': 'Soko la Pig World',
+    'marketIntro': 'Tafuta nguruwe wako',
+    'marketSubtitle': 'Tazama matangazo ya mashamba na uwasiliane na wauzaji.',
     'home': 'Nyumbani',
     'profile': 'Wasifu',
     'notifications': 'Arifa',
